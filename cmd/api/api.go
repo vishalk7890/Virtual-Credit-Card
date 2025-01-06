@@ -30,7 +30,7 @@ type application struct {
 	version  string
 }
 
-func (app *application) Serve() error {
+func (app *application) serve() error {
 	srv := &http.Server{
 		Addr:              fmt.Sprintf(":%d", app.config.port),
 		Handler:           app.routes(),
@@ -39,31 +39,34 @@ func (app *application) Serve() error {
 		ReadHeaderTimeout: 5 * time.Second,
 		WriteTimeout:      5 * time.Second,
 	}
-	app.infoLog.Println(fmt.Sprintf("Starting backend server in %s mode on port %d", app.config.env, app.config.port))
+
+	app.infoLog.Printf("Starting Back end server in %s mode on port %d\n", app.config.env, app.config.port)
+
 	return srv.ListenAndServe()
 }
 
 func main() {
 	var cfg config
-	flag.IntVar(&cfg.port, "port", 4001, "server Port to listen on")
-	flag.StringVar(&cfg.env, "env", "development", "Application Env {development | prd | maintenance}")
+
+	flag.IntVar(&cfg.port, "port", 4001, "Server port to listen on")
+	flag.StringVar(&cfg.env, "env", "development", "Application environment {development|production|maintenance}")
+
 	flag.Parse()
 
 	cfg.stripe.key = os.Getenv("STRIPE_KEY")
 	cfg.stripe.secret = os.Getenv("STRIPE_SECRET")
 
 	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
-	errorlog := log.New(os.Stdout, "ERROR\t", log.Ldate|log.Ltime)
+	errorLog := log.New(os.Stdout, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
 
 	app := &application{
-
 		config:   cfg,
 		infoLog:  infoLog,
-		errorLog: errorlog,
+		errorLog: errorLog,
 		version:  version,
 	}
 
-	err := app.Serve()
+	err := app.serve()
 	if err != nil {
 		log.Fatal(err)
 	}

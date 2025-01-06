@@ -2,9 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"stripe-app/internal/cards"
+
 	"net/http"
 	"strconv"
-	"stripe-app/internal/cards"
 )
 
 type stripePayload struct {
@@ -21,6 +22,7 @@ type jsonResponse struct {
 
 func (app *application) GetPaymentIntent(w http.ResponseWriter, r *http.Request) {
 	var payload stripePayload
+
 	err := json.NewDecoder(r.Body).Decode(&payload)
 	if err != nil {
 		app.errorLog.Println(err)
@@ -32,6 +34,7 @@ func (app *application) GetPaymentIntent(w http.ResponseWriter, r *http.Request)
 		app.errorLog.Println(err)
 		return
 	}
+
 	card := cards.Card{
 		Secret:   app.config.stripe.secret,
 		Key:      app.config.stripe.key,
@@ -41,20 +44,19 @@ func (app *application) GetPaymentIntent(w http.ResponseWriter, r *http.Request)
 	okay := true
 
 	pi, msg, err := card.Charge(payload.Currency, amount)
-
 	if err != nil {
 		okay = false
-
 	}
+
 	if okay {
-		out, err := json.MarshalIndent(pi, "", "  ")
+		out, err := json.MarshalIndent(pi, "", "   ")
 		if err != nil {
 			app.errorLog.Println(err)
 			return
 		}
+
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(out)
-
 	} else {
 		j := jsonResponse{
 			OK:      false,
@@ -62,12 +64,12 @@ func (app *application) GetPaymentIntent(w http.ResponseWriter, r *http.Request)
 			Content: "",
 		}
 
-		out, err := json.MarshalIndent(j, "", "  ")
+		out, err := json.MarshalIndent(j, "", "   ")
 		if err != nil {
 			app.errorLog.Println(err)
 		}
+
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(out)
 	}
-
 }
