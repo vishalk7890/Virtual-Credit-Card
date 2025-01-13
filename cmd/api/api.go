@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"stripe-app/internal/driver"
+	"stripe-app/internal/models"
 	"time"
 )
 
@@ -29,6 +30,7 @@ type application struct {
 	infoLog  *log.Logger
 	errorLog *log.Logger
 	version  string
+	DB       models.DBModel
 }
 
 func (app *application) serve() error {
@@ -63,15 +65,18 @@ func main() {
 
 	conn, err := driver.OpenDB(cfg.db.dsn)
 	if err != nil {
-		errorLog.Fatal(err)
+		log.Fatalf("Unable to connect to the database: %v", err)
 	}
 	defer conn.Close()
+
+	
 
 	app := &application{
 		config:   cfg,
 		infoLog:  infoLog,
 		errorLog: errorLog,
 		version:  version,
+		DB:       models.DBModel{DB: conn},
 	}
 
 	err = app.serve()
