@@ -3,7 +3,6 @@ package models
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"time"
 )
 
@@ -39,10 +38,10 @@ func (m *DBModel) GetWidget(id int) (Widget, error) {
 	defer cancel()
 	var widget Widget
 
-	query := m.DB.QueryRowContext(ctx, "SELECT * FROM widgets WHERE id = ?", id)
-	err := query.Scan(&widget.ID, &widget.Name, &widget.Description, &widget.InventoryLevel, &widget.Price, &widget.CreatedAt, &widget.UpdatedAt)
+	row := m.DB.QueryRowContext(ctx, "SELECT id, name FROM widgets WHERE id = ?", id)
+	err := row.Scan(&widget.ID, &widget.Name)
 	if err != nil {
-		return widget, fmt.Errorf("error querying one widget: %w", err)
+		return widget, err
 	}
 	return widget, nil
 }
