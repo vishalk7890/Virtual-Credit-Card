@@ -1,12 +1,13 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"stripe-app/internal/cards"
 
 	"net/http"
 	"strconv"
+
+	"github.com/go-chi/chi"
 )
 
 type stripePayload struct {
@@ -74,42 +75,21 @@ func (app *application) GetPaymentIntent(w http.ResponseWriter, r *http.Request)
 		w.Write(out)
 	}
 }
-
 func (app *application) GetWidgetByID(w http.ResponseWriter, r *http.Request) {
-	idStr := r.URL.Query().Get("id")
-	if idStr == "" {
-		http.Error(w, "Missing id parameter", http.StatusBadRequest)
-		app.errorLog.Println("Missing id parameter")
-		return
-	}
 
-	id, err := strconv.Atoi(idStr)
-	app.infoLog.Printf("URL Parameter 'id': %q", id)
+	id := chi.URLParam(r, "id")
+	widgetID, _ := strconv.Atoi(id)
+	widget, err := app.DB.GetWidget(widgetID)
 	if err != nil {
-		http.Error(w, "Invalid id parameter", http.StatusBadRequest)
-		app.errorLog.Println("Invalid id parameter:", err)
+		app.errorLog.Println(err)
 		return
 	}
-
-	widget, err := app.DB.GetWidget(id)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			http.Error(w, "Widget not found", http.StatusNotFound)
-			app.errorLog.Println("Widget not found:", err)
-		} else {
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
-			app.errorLog.Println("Failed to get widget:", err)
-		}
-		return
-	}
-
 	out, err := json.MarshalIndent(widget, "", "   ")
 	if err != nil {
-		http.Error(w, "Failed to marshal widget", http.StatusInternalServerError)
-		app.errorLog.Println("Failed to marshal widget:", err)
+		app.errorLog.Println(err)
 		return
 	}
-
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(out)
+
 }

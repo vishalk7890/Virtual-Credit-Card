@@ -67,10 +67,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Unable to connect to the database: %v", err)
 	}
+	log.Println("Connected to the database")
 	defer conn.Close()
-
-	
-
 	app := &application{
 		config:   cfg,
 		infoLog:  infoLog,
