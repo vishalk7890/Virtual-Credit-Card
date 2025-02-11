@@ -35,31 +35,19 @@ type Widget struct {
 }
 
 func (m *DBModel) GetWidget(id int) (Widget, error) {
-	_, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	var widget Widget
 
-	rows := m.DB.QueryRow("SELECT COUNT(*) FROM widgets")
+	// row := m.DB.QueryRowContext(ctx, "SELECT id, name FROM widgets WHERE id = ?", id)
+	// err := row.Scan(&widget.ID, &widget.Name)
+	row := m.DB.QueryRowContext(ctx, "SELECT id, name , description FROM widget WHERE id = ?", id)
+	err := row.Scan(&widget.ID, &widget.Name, &widget.Description)
 
-	defer rows.Close()
-
-	// Iterate over the rows and print the results
-	for rows.Next() {
-		var widget Widget
-		err := rows.Scan(&widget.ID, &widget.Name)
-		if err != nil {
-			fmt.Printf("Error scanning row: %v\n", err)
-			return widget, err
-		}
-		// Print each widget's data
-		fmt.Printf("Widget ID: %d, Name: %s\n", widget.ID, widget.Name)
+	if err != nil {
+		fmt.Println("query err", err)
+		return widget, err
 	}
 
-	// Check for errors from iterating over rows
-	if err := rows.Err(); err != nil {
-		fmt.Printf("Error iterating over rows: %v\n", err)
-
-		return widget, nil
-	}
 	return widget, nil
 }

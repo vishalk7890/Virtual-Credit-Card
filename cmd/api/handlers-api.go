@@ -1,13 +1,15 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
+	"fmt"
 	"stripe-app/internal/cards"
 
 	"net/http"
 	"strconv"
 
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 )
 
 type stripePayload struct {
@@ -76,20 +78,34 @@ func (app *application) GetPaymentIntent(w http.ResponseWriter, r *http.Request)
 	}
 }
 func (app *application) GetWidgetByID(w http.ResponseWriter, r *http.Request) {
-
 	id := chi.URLParam(r, "id")
-	widgetID, _ := strconv.Atoi(id)
-	widget, err := app.DB.GetWidget(widgetID)
+	fmt.Println("Raw ID from URL:", id) // Debugging output
+
+	widgetID, err := strconv.Atoi(id)
 	if err != nil {
-		app.errorLog.Println(err)
+		fmt.Println("Invalid ID (not a number):", id) // Debugging output
+		http.Error(w, `{"error": "Invalid widget ID"}`, http.StatusBadRequest)
 		return
 	}
+
+	fmt.Println("Fetching widget with ID:", widgetID) // Debugging output
+	widget, err := app.DB.GetWidget(widgetID)
+	if err == sql.ErrNoRows {
+		fmt.Println("No widget found with ID:", widgetID)
+		http.Error(w, `{"error": "Widget not found"}`, http.StatusNotFound)
+		return
+	} else if err != nil {
+		fmt.Println("Database error:", err)
+		http.Error(w, `{"error": "Internal Server Error"}`, http.StatusInternalServerError)
+		return
+	}
+
 	out, err := json.MarshalIndent(widget, "", "   ")
 	if err != nil {
-		app.errorLog.Println(err)
+		fmt.Println("JSON encoding error:", err)
 		return
 	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(out)
-
 }
