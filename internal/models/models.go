@@ -30,8 +30,57 @@ type Widget struct {
 	Description    string    `json:"description"`
 	InventoryLevel int       `json:"inventory_level"`
 	Price          int       `json:"price"`
+	Image          string    `json:"image"`
 	CreatedAt      time.Time `json:"-"`
 	UpdatedAt      time.Time `json:"-"`
+}
+
+// for all orders
+type Order struct {
+	ID            int       `json:"id"`
+	WidgetID      int       `json:"widget_id"`
+	TransactionID int       `json:"transaction_id"`
+	StatusID      int       `json:"status_id"`
+	Quantity      int       `json:"quantity"`
+	Amount        int       `json:"amount"`
+	CreatedAt     time.Time `json:"-"`
+	UpdatedAt     time.Time `json:"-"`
+}
+
+// status is the type for all status
+type Status struct {
+	ID        int       `json:"id"`
+	Name      string    `json:"name"`
+	CreatedAt time.Time `json:"-"`
+	UpdatedAt time.Time `json:"-"`
+}
+
+type TransactionStatus struct {
+	ID        int       `json:"id"`
+	Name      string    `json:"name"`
+	CreatedAt time.Time `json:"-"`
+	UpdatedAt time.Time `json:"-"`
+}
+
+type Transaction struct {
+	ID                  int       `json:"id"`
+	Amount              int       `json:"amount"`
+	Currency            string    `json:"currency"`
+	LastFour            string    `json:"last_four"`
+	BankReturnCode      string    `json:"bank_return_code"`
+	TransactionStatusID int       `json:"transaction_status_id"`
+	CreatedAt           time.Time `json:"-"`
+	UpdatedAt           time.Time `json:"-"`
+}
+
+type Users struct {
+	ID        int       `json:"id"`
+	FirstName string    `json:"first_name"`
+	LastName  string    `json:"last_name"`
+	Email     string    `json:"email"`
+	Password  string    `json:"password"`
+	CreatedAt time.Time `json:"-"`
+	UpdatedAt time.Time `json:"-"`
 }
 
 func (m *DBModel) GetWidget(id int) (Widget, error) {
@@ -41,8 +90,8 @@ func (m *DBModel) GetWidget(id int) (Widget, error) {
 
 	// row := m.DB.QueryRowContext(ctx, "SELECT id, name FROM widgets WHERE id = ?", id)
 	// err := row.Scan(&widget.ID, &widget.Name)
-	row := m.DB.QueryRowContext(ctx, "SELECT id, name , description FROM widget WHERE id = ?", id)
-	err := row.Scan(&widget.ID, &widget.Name, &widget.Description)
+	row := m.DB.QueryRowContext(ctx, "SELECT id, name , description, inventory_level, price , created_at , updated_at, coalesce(image, '')  FROM widgets WHERE id = ?", id)
+	err := row.Scan(&widget.ID, &widget.Name, &widget.Description, &widget.InventoryLevel, &widget.Price, &widget.CreatedAt, &widget.UpdatedAt, &widget.Image)
 
 	if err != nil {
 		fmt.Println("query err", err)

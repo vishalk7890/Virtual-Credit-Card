@@ -1,8 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
-	"stripe-app/internal/models"
+	"strconv"
+
+	"github.com/go-chi/chi/v5"
 )
 
 // VirtualTerminal displays the virtual terminal page
@@ -47,13 +50,19 @@ func (app *application) PaymentSucceeded(w http.ResponseWriter, r *http.Request)
 
 // ChargeOnce displays the page to buy one widget
 func (app *application) ChargeOnce(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	fmt.Println("Raw ID from URL:", id) // Debugging output
 
-	widget := models.Widget{
-		ID:             1,
-		Name:           "Custom Widget",
-		Description:    "A very nice widget",
-		InventoryLevel: 10,
-		Price:          1000,
+	widgetID, err := strconv.Atoi(id)
+	if err != nil {
+		fmt.Println("Invalid ID (not a number):", id) // Debugging output
+		http.Error(w, `{"error": "Invalid widget ID"}`, http.StatusBadRequest)
+		return
+	}
+	widget, err := app.DB.GetWidget(widgetID)
+	if err != nil {
+		fmt.Println("Error fetching widget:", err) // Debugging output
+		return
 	}
 
 	data := make(map[string]interface{})
