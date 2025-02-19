@@ -16,6 +16,16 @@ func (app *application) VirtualTerminal(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
+func (app *application) Home(w http.ResponseWriter, r *http.Request) {
+	if err := app.renderTemplate(w, r, "home", &templateData{}); err != nil {
+		app.errorLog.Println(err)
+	}
+}
+
+
+
+
+
 // PaymentSucceeded displays the receipt page
 func (app *application) PaymentSucceeded(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
@@ -52,6 +62,16 @@ func (app *application) PaymentSucceeded(w http.ResponseWriter, r *http.Request)
 	expiryMonth := pm.Card.ExpMonth
 	expiryYear := pm.Card.ExpYear
 
+// craete a new customer
+
+
+//craete a new order
+
+
+// createa new payment
+
+
+
 	data := make(map[string]interface{})
 	data["cardholder"] = cardHolder
 	data["email"] = email
@@ -64,7 +84,9 @@ func (app *application) PaymentSucceeded(w http.ResponseWriter, r *http.Request)
 	data["expiry_year"] = expiryYear
 	data["bank_return_code"]= pi.Charges.Data[0].ID
 
-	// should write this data to session, and then redirect user to new page?
+	// should write this data to session, and then redirect user to new page
+
+	
 
 	if err := app.renderTemplate(w, r, "succeeded", &templateData{
 		Data: data,

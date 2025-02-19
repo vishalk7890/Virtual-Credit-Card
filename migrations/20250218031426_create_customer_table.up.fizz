@@ -1,0 +1,9 @@
+create_table("customers") {
+    t.Column("id", "integer", {primary: true, auto_increment: true})
+    t.Column("first_name", "string", {})
+    t.Column("last_name", "string", {})
+    t.Column("email", "string", {})
+    t.Column("created_at", "datetime", {"default_raw": "CURRENT_TIMESTAMP"})
+    t.Column("updated_at", "datetime", {"default_raw": "CURRENT_TIMESTAMP", "on_update_raw": "CURRENT_TIMESTAMP"})
+}
+
