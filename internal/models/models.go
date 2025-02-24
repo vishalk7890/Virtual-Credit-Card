@@ -68,6 +68,8 @@ type Transaction struct {
 	Amount              int       `json:"amount"`
 	Currency            string    `json:"currency"`
 	LastFour            string    `json:"last_four"`
+	ExpiryMonth         string    `json:"expiry_month"`
+	ExpiryYear          string    `json:"expiry_year"`
 	BankReturnCode      string    `json:"bank_return_code"`
 	TransactionStatusID int       `json:"transaction_status_id"`
 	CreatedAt           time.Time `json:"-"`
@@ -136,9 +138,9 @@ func (m *DBModel) InsertOrder(order Order) (int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	stmt := `INSERT INTO orders(widget_id, transaction_id, status_id, quantity, amount, created_at, updated_at) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id`
+	stmt := `INSERT INTO orders(widget_id, transaction_id, status_id, quantity, amount, created_at, updated_at, customer_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`
 
-	result, err := m.DB.ExecContext(ctx, stmt, order.WidgetID, order.TransactionID, order.StatusID, order.Quantity, order.Amount, time.Now(), time.Now())
+	result, err := m.DB.ExecContext(ctx, stmt, order.WidgetID, order.TransactionID, order.StatusID, order.Quantity, order.Amount, time.Now(), time.Now(), order.CustomerID)
 	if err != nil {
 		fmt.Println("error in insert order", err)
 		return 0, err
@@ -148,5 +150,17 @@ func (m *DBModel) InsertOrder(order Order) (int, error) {
 		fmt.Println("error in insert order", err)
 		return 0, err
 	}
+	return int(id), nil
+}
+func (m *DBModel) InsertCustomer(customer Customer) (int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	stmt := `INSERT INTO customers(first_name, last_name, email, created_at, updated_at) VALUES($1,$2,$3,$4,$5) RETURNING id`
+	result, err := m.DB.ExecContext(ctx, stmt, customer.FirstName, customer.LastName, customer.Email, time.Now(), time.Now())
+	if err != nil {
+		fmt.Println("error in insert customer", err)
+		return 0, err
+	}
+	id, err := result.LastInsertId()
 	return int(id), nil
 }

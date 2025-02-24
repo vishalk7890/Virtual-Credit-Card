@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strconv"
 	"stripe-app/internal/cards"
+	"stripe-app/internal/models"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -22,10 +24,6 @@ func (app *application) Home(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-
-
-
-
 // PaymentSucceeded displays the receipt page
 func (app *application) PaymentSucceeded(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
@@ -35,12 +33,15 @@ func (app *application) PaymentSucceeded(w http.ResponseWriter, r *http.Request)
 	}
 
 	// read posted data
-	cardHolder := r.Form.Get("cardholder_name")
+	//cardHolder := r.Form.Get("cardholder_name")
 	email := r.Form.Get("email")
+	first_name := r.Form.Get("first_name")
+	last_name := r.Form.Get("last_name")
 	paymentIntent := r.Form.Get("payment_intent")
 	paymentMethod := r.Form.Get("payment_method")
 	paymentAmount := r.Form.Get("payment_amount")
 	paymentCurrency := r.Form.Get("payment_currency")
+	widgetId, _ := strconv.Atoi(r.Form.Get("product_id"))
 
 	card := cards.Card{
 		Secret: app.config.stripe.secret,
@@ -59,21 +60,62 @@ func (app *application) PaymentSucceeded(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	lastFour := pm.Card.Last4
-	expiryMonth := pm.Card.ExpMonth
-	expiryYear := pm.Card.ExpYear
+	expiryMonth := strconv.Itoa(int(pm.Card.ExpMonth))
+	expiryYear := strconv.Itoa(int(pm.Card.ExpYear))
 
-// craete a new customer
+	// craete a new customer
+	customerID, err := app.SaveCustomer(first_name, last_name, email)
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
 
+	app.infoLog.Println("Customer ID:", customerID)
 
-//craete a new order
+	// createa new transaction
+	amount, err := strconv.Atoi(paymentAmount)
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
 
+	txn := models.Transaction{
+		Amount:              amount,
+		Currency:            paymentCurrency,
+		LastFour:            lastFour,
+		ExpiryMonth:         expiryMonth,
+		ExpiryYear:          expiryYear,
+		BankReturnCode:      pi.Charges.Data[0].ID,
+		TransactionStatusID: 2,
+	}
+	txnId, err := app.SaveTransaction(txn)
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
+	app.infoLog.Println("Transaction ID:", txnId)
 
-// createa new payment
+	//craete a new order
 
+	order := models.Order{
+		WidgetID:      widgetId,
+		TransactionID: txnId,
+		CustomerID:    customerID,
+		StatusID:      1,
+		Quantity:      1,
+		Amount:        amount,
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
+	}
 
+	_, err = app.SaveOrder(order)
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
 
 	data := make(map[string]interface{})
-	data["cardholder"] = cardHolder
+	//data["cardholder"] = cardHolder
 	data["email"] = email
 	data["pi"] = paymentIntent
 	data["pm"] = paymentMethod
@@ -82,11 +124,12 @@ func (app *application) PaymentSucceeded(w http.ResponseWriter, r *http.Request)
 	data["last_four"] = lastFour
 	data["expiry_month"] = expiryMonth
 	data["expiry_year"] = expiryYear
-	data["bank_return_code"]= pi.Charges.Data[0].ID
+	data["bank_return_code"] = pi.Charges.Data[0].ID
+	data["first_name"] = first_name
+	data["last_name"] = last_name
+
 
 	// should write this data to session, and then redirect user to new page
-
-	
 
 	if err := app.renderTemplate(w, r, "succeeded", &templateData{
 		Data: data,
@@ -120,4 +163,34 @@ func (app *application) ChargeOnce(w http.ResponseWriter, r *http.Request) {
 	}, "stripe-js"); err != nil {
 		app.errorLog.Println(err)
 	}
+}
+
+func (app *application) SaveCustomer(firstName, lastName, email string) (int, error) {
+	customer := models.Customer{
+		FirstName: firstName,
+		LastName:  lastName,
+		Email:     email,
+	}
+	id, err := app.DB.InsertCustomer(customer)
+	if err != nil {
+		return 0, err
+
+	}
+	return id, nil
+}
+
+func (app *application) SaveTransaction(txn models.Transaction) (int, error) {
+	id, err := app.DB.InsertTransaction(txn)
+	if err != nil {
+		return 0, err
+	}
+	return id, nil
+}
+
+func (app *application) SaveOrder(order models.Order) (int, error) {
+	id, err := app.DB.InsertOrder(order)
+	if err != nil {
+		return 0, err
+	}
+	return id, nil
 }
